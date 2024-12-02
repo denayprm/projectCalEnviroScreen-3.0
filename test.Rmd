@@ -81,6 +81,45 @@ disease_prevalence_cleaned_data <- Enviro %>%
 ```
 
 ```{r}
+library(readxl)
+disease_prevalence <- read_excel("dataset/disease_prevalence_data.xlsx")
+```
 
+```{r}
+head(disease_prevalence,5)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+
+# Handle missing values
+disease_prevalence <- disease_prevalence %>%
+  mutate(across(everything(), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .))) # Replace NA with mean
+
+# Remove duplicates
+disease_prevalence <- disease_prevalence %>%
+  distinct()
+
+# Detect and remove outliers using Z-scores
+z_scores <- scale(disease_prevalence %>% select_if(is.numeric))
+disease_prevalence <- disease_prevalence[apply(abs(z_scores) < 3, 1, all), ]
+```
+
+```{r}
+colnames(disease_prevalence)
+```
+
+```{r}
+colnames(disease_prevalence) <- c("Asthma_Prevalence", "Cardiovascular_Disease_Prevalence", "Asthma Percentile", "Cardiovascular Disease Percentile", "Pollution Burden")
+```
+
+```{r}
+library(readxl)
+library(writexl)
+file_output_disease <- "dataset/disease_prevalence.xlsx"
+
+write_xlsx(disease_prevalence, file_output_disease)
 ```
 
