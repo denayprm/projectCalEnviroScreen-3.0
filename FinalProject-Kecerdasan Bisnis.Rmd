@@ -15,10 +15,12 @@ knitr::opts_chunk$set(echo = TRUE)
 if (!requireNamespace("tidyverse")) install.packages("tidyverse")
 if (!requireNamespace("readr")) install.packages("readr")
 if (!requireNamespace("writexl")) install.packages("writexl")
+if (!requireNamespace("readxl")) install.packages("readxl")
 
 library(tidyverse)
 library (readr)
 library(writexl)
+library(readxl)
 ```
 
 # 1. Import Dataset
@@ -76,5 +78,112 @@ disease_prevalence_required_columns <- c("Asthma",
 # data penyakit
 disease_prevalence_data <- Enviro %>%
   select(all_of(disease_prevalence_required_columns))
+```
+
+## Ekspor Data
+
+```{r}
+#lokasi
+file_output_air <- "dataset/air_quality_data.xlsx"
+file_output_disease <- "dataset/disease_prevalence_data.xlsx"
+
+# Ekspor data kualitas udara ke file XLSX
+write_xlsx(air_quality_data, file_output_air)
+
+# Ekspor data penyakit ke file XLSX
+write_xlsx(disease_prevalence_data, file_output_disease)
+```
+
+
+# 5. DATA KULITAS UDARA
+
+```{r}
+# import data
+air_quality <- read_excel("dataset/air_quality_data.xlsx")
+```
+## 0. Import Library New
+
+```{r}
+if (!require(dplyr)) install.packages("dplyr")
+if (!require(ggplot2)) install.packages("ggplot2")
+if (!require(caret)) install.packages("caret")
+if (!require(cluster)) install.packages("cluster")
+
+library(dplyr)
+library(ggplot2)
+library(caret)
+library(cluster)
+```
+
+## 1. Observasi Data
+
+```{r}
+# tampilkan data
+head(air_quality, 5)
+```
+
+```{r}
+# struktur data
+str(air_quality)
+```
+
+```{r}
+# descriptive data
+summary(air_quality)
+```
+## 2. Data Cleaning
+
+```{r}
+# Handle missing values
+air_quality <- air_quality %>%
+  mutate(across(everything(), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .))) # Replace NA with mean
+
+# Remove duplicates
+air_quality <- air_quality %>%
+  distinct()
+
+# Detect and remove outliers using Z-scores
+z_scores <- scale(air_quality %>% select_if(is.numeric))
+air_quality <- air_quality[apply(abs(z_scores) < 3, 1, all), ]
+```
+
+## 3. Data Pre Processing
+
+```{r}
+# Mengganti nama kolom
+colnames(air_quality) <- c("Ozone_Concentration", "PM2.5_Concentration", "DieselPM_Concentration", "Ozone_Percentile", "PM2.5_Percentile", "DieselPM_Percentile")
+```
+
+```{r}
+# Ekspor Data Airquality baru
+#lokasi
+file_output_airquality <- "dataset/air_quality.xlsx"
+
+# Ekspor data kualitas udara ke file XLSX baru
+write_xlsx(air_quality, file_output_airquality)
+```
+
+
+## 4. Data Mining
+
+```{r}
+# Encoding and scaling
+airquality_scaled <- air_quality %>%
+  mutate(across(where(is.numeric), scale))
+```
+
+```{r}
+# Train-test split
+set.seed(125)
+airquality_train_index <- createDataPartition(airquality_scaled$Ozone, p = 0.8, list = FALSE)
+airquality_train <- airquality_scaled[airquality_train_index, ]
+airquality_test <- airquality_scaled[-airquality_train_index, ]
+```
+
+```{r}
+# Clustering K-Means
+set.seed(125)
+airquality_kmeans_result <- kmeans(airquality_scaled, centers = 3)
+airquality_scaled$Cluster <- as.factor(airquality_kmeans_result$cluster)
 ```
 
