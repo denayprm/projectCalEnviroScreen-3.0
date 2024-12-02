@@ -83,15 +83,15 @@ disease_prevalence_data <- Enviro %>%
 ## Ekspor Data
 
 ```{r}
-#lokasi
-file_output_air <- "dataset/air_quality_data.xlsx"
-file_output_disease <- "dataset/disease_prevalence_data.xlsx"
-
-# Ekspor data kualitas udara ke file XLSX
-write_xlsx(air_quality_data, file_output_air)
-
-# Ekspor data penyakit ke file XLSX
-write_xlsx(disease_prevalence_data, file_output_disease)
+# #lokasi
+# file_output_air <- "dataset/air_quality_data.xlsx"
+# file_output_disease <- "dataset/disease_prevalence_data.xlsx"
+# 
+# # Ekspor data kualitas udara ke file XLSX
+# write_xlsx(air_quality_data, file_output_air)
+# 
+# # Ekspor data penyakit ke file XLSX
+# write_xlsx(disease_prevalence_data, file_output_disease)
 ```
 
 
@@ -108,11 +108,13 @@ if (!require(dplyr)) install.packages("dplyr")
 if (!require(ggplot2)) install.packages("ggplot2")
 if (!require(caret)) install.packages("caret")
 if (!require(cluster)) install.packages("cluster")
+if (!require(corrplot)) install.packages("corrplot")
 
 library(dplyr)
 library(ggplot2)
 library(caret)
 library(cluster)
+library(corrplot)
 ```
 
 ## 1. Observasi Data
@@ -156,13 +158,52 @@ colnames(air_quality) <- c("Ozone_Concentration", "PM2.5_Concentration", "Diesel
 
 ```{r}
 # Ekspor Data Airquality baru
-#lokasi
-file_output_airquality <- "dataset/air_quality.xlsx"
-
-# Ekspor data kualitas udara ke file XLSX baru
-write_xlsx(air_quality, file_output_airquality)
+# #lokasi
+# file_output_airquality <- "dataset/air_quality.xlsx"
+# 
+# # Ekspor data kualitas udara ke file XLSX baru
+# write_xlsx(air_quality, file_output_airquality)
 ```
 
+### Eksplorasi Data Analisis (EDA) Airquality
+
+```{r}
+# tampilkan data
+head(air_quality, 5)
+```
+
+```{r}
+# Visualize distributions of numeric columns
+numeric_cols <- air_quality %>% select_if(is.numeric)
+numeric_cols_long <- numeric_cols %>%
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value")
+
+ggplot(numeric_cols_long, aes(x = Value)) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "white") +
+  facet_wrap(~Variable, scales = "free") +
+  labs(title = "Distribution of Numeric Variables", x = "Value", y = "Frequency")
+```
+
+```{r}
+# Correlation matrix
+cor_matrix <- cor(air_quality %>% select_if(is.numeric))
+corrplot(cor_matrix, method = "circle", type = "lower", tl.col = "black", tl.srt = 45)
+```
+
+```{r}
+# Pair plot for relationships
+pairs(air_quality %>% select_if(is.numeric),
+      main = "Pair Plot of Numeric Variables",
+      pch = 21, bg = "lightblue")
+```
+
+```{r}
+# Box plot
+ggplot(numeric_cols_long, aes(x = Variable, y = Value)) +
+  geom_boxplot(fill = "skyblue", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Boxplot of Air Quality Data", x = "Variables", y = "Values")
+```
 
 ## 4. Data Mining
 
@@ -175,7 +216,7 @@ airquality_scaled <- air_quality %>%
 ```{r}
 # Train-test split
 set.seed(125)
-airquality_train_index <- createDataPartition(airquality_scaled$Ozone, p = 0.8, list = FALSE)
+airquality_train_index <- createDataPartition(airquality_scaled$Ozone_Concentration, p = 0.8, list = FALSE)
 airquality_train <- airquality_scaled[airquality_train_index, ]
 airquality_test <- airquality_scaled[-airquality_train_index, ]
 ```
@@ -185,5 +226,63 @@ airquality_test <- airquality_scaled[-airquality_train_index, ]
 set.seed(125)
 airquality_kmeans_result <- kmeans(airquality_scaled, centers = 3)
 airquality_scaled$Cluster <- as.factor(airquality_kmeans_result$cluster)
+```
+
+```{r}
+# Regression (example with linear regression)
+airquality_model <- lm(Ozone_Concentration ~ PM2.5_Concentration + DieselPM_Concentration, data = airquality_train)
+summary(airquality_model)
+```
+
+## Analysis and Visualization
+
+```{r}
+# Visualize clusters
+airquality_cluster_plot <- ggplot(airquality_train, aes(x = PM2.5_Concentration, y = DieselPM_Concentration, color = Cluster)) +
+  geom_point(size = 3, alpha = 0.7) + 
+  scale_color_viridis_d() +
+  geom_density2d(alpha = 0.5, color = "gray") +
+  labs(  
+    title = "Air Quality Cluster Analysis",   
+    subtitle = "Clustering based on PM2.5 and Diesel PM Concentrations",  
+    x = "PM 2.5 Concentration (µg/m³)",   
+    y = "Diesel PM Concentration (µg/m³)"  
+  ) +  
+  theme_minimal(base_size = 12) +  
+  theme(  
+    legend.position = "top",  
+    plot.title = element_text(face = "bold"),  
+    plot.subtitle = element_text(color = "gray50")  
+  )  
+
+print(airquality_cluster_plot)
+```
+
+```{r}
+# Predict on test data 
+airquality_predictions <- predict(airquality_model, airquality_test)
+airquality_test$Predicted_Ozone <- airquality_predictions
+
+airquality_test %>%
+  select(Ozone_Concentration, Predicted_Ozone) %>%
+  head(10)
+```
+
+```{r}
+# Visualize actual vs predicted
+ggplot(airquality_test, aes(x = Ozone_Concentration, y = Predicted_Ozone)) +
+  geom_point(color = "blue", alpha = 0.6) +
+  geom_abline(color = "red", linetype = "dashed", size = 1) +
+  labs(
+    title = "Perbandingan Ozon Aktual vs Prediksi", 
+    x = "Konsentrasi Ozon Aktual",  # Label sumbu X
+    y = "Konsentrasi Ozon Prediksi"  # Label sumbu Y
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10)
+  )
 ```
 
