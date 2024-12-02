@@ -1,0 +1,86 @@
+---
+title: "test"
+author: "Deni Permana"
+date: "2024-12-02"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+# import data dari lokal
+CalEnviroScreen_ <- read_csv("dataset/CalEnviroScreen 3.0 Results (June 2018 Update).csv")
+View(CalEnviroScreen)
+```
+
+```{r}
+
+```
+
+# Cleaning Data
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+# tampilin data
+print(head(Enviro, 5))
+```
+
+```{r}
+str(Enviro)
+```
+
+```{r}
+# hapus na
+# Enviro <- Enviro %>%
+#   mutate(across(everything(), ~ replace_na(.x, "Unknown")))
+Enviro <- na.omit(Enviro)
+```
+
+```{r}
+# menghapus nilai duplikasi
+Enviro <- Enviro %>% distinct()
+```
+
+```{r}
+summary(Enviro)
+```
+
+```{r}
+str(Enviro)
+```
+
+```{r}
+# pilih kolom
+air_quality_required_columns <- c("Ozone", 
+                      "PM2.5", 
+                      "Diesel.PM", 
+                      "Ozone.Pctl", 
+                      "PM2.5.Pctl", 
+                      "Diesel.PM.Pctl")
+# data kulitas udara
+air_quality_cleaned_data <- Enviro %>%
+  select(all_of(air_quality_required_columns))
+```
+
+```{r}
+# pilih kolom
+disease_prevalence_required_columns <- c("Asthma",
+                                         "Cardiovascular.Disease",
+                                         "Asthma.Pctl",
+                                         "Cardiovascular.Disease.Pctl",
+                                         "Pollution.Burden")
+# data penyakit
+disease_prevalence_cleaned_data <- Enviro %>%
+  select(all_of(disease_prevalence_required_columns))
+```
+
+```{r}
+
+```
+
