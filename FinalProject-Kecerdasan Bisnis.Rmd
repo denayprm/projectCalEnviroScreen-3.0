@@ -1,0 +1,80 @@
+---
+title: "FinalProject-Kecerdasan Bisnis"
+author: "Kelompok 1"
+date: "2024-12-02"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 0. Import Library
+
+```{r}
+if (!requireNamespace("tidyverse")) install.packages("tidyverse")
+if (!requireNamespace("readr")) install.packages("readr")
+if (!requireNamespace("writexl")) install.packages("writexl")
+
+library(tidyverse)
+library (readr)
+library(writexl)
+```
+
+# 1. Import Dataset
+
+```{r}
+# import data dari website
+Enviro <- read.csv("https://data.ca.gov/dataset/0bd5f40b-c59b-4183-be22-d057eae8383c/resource/89b3f4e9-0bf8-4690-8c6f-715a717f3fae/download/calenviroscreen-3.0-results-june-2018-update.csv")
+```
+
+```{r}
+# cek struktur data
+str(Enviro)
+```
+
+```{r}
+# deskriptif data
+summary(Enviro)
+```
+
+# 2. Cleaning
+
+```{r}
+# mengahapus nilai na
+Enviro <- na.omit(Enviro)
+# menghapus nilai duplikasi
+Enviro <- Enviro %>% distinct()
+```
+
+# 3. Pre Processing
+
+## Data  Kualitas Udara
+
+```{r}
+# pilih kolom
+air_quality_required_columns <- c("Ozone", 
+                      "PM2.5", 
+                      "Diesel.PM", 
+                      "Ozone.Pctl", 
+                      "PM2.5.Pctl", 
+                      "Diesel.PM.Pctl")
+# data kulitas udara
+air_quality_data <- Enviro %>%
+  select(all_of(air_quality_required_columns))
+```
+
+## Data Pravelansi Penyakit
+
+```{r}
+# pilih kolom
+disease_prevalence_required_columns <- c("Asthma",
+                                         "Cardiovascular.Disease",
+                                         "Asthma.Pctl",
+                                         "Cardiovascular.Disease.Pctl",
+                                         "Pollution.Burden")
+# data penyakit
+disease_prevalence_data <- Enviro %>%
+  select(all_of(disease_prevalence_required_columns))
+```
+
