@@ -138,7 +138,7 @@ summary(air_quality)
 ```{r}
 # Handle missing values
 air_quality <- air_quality %>%
-  mutate(across(everything(), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .))) # Replace NA with mean
+  mutate(across(everything(), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .))) 
 
 # Remove duplicates
 air_quality <- air_quality %>%
@@ -214,6 +214,12 @@ airquality_scaled <- air_quality %>%
 ```
 
 ```{r}
+set.seed(125)
+airquality_kmeans_result <- kmeans(airquality_scaled, centers = 3)
+airquality_scaled$Cluster <- as.factor(airquality_kmeans_result$cluster)
+```
+
+```{r}
 # Train-test split
 set.seed(125)
 airquality_train_index <- createDataPartition(airquality_scaled$Ozone_Concentration, p = 0.8, list = FALSE)
@@ -221,41 +227,35 @@ airquality_train <- airquality_scaled[airquality_train_index, ]
 airquality_test <- airquality_scaled[-airquality_train_index, ]
 ```
 
-```{r}
-# Clustering K-Means
-set.seed(125)
-airquality_kmeans_result <- kmeans(airquality_scaled, centers = 3)
-airquality_scaled$Cluster <- as.factor(airquality_kmeans_result$cluster)
-```
-
-```{r}
-# Regression (example with linear regression)
-airquality_model <- lm(Ozone_Concentration ~ PM2.5_Concentration + DieselPM_Concentration, data = airquality_train)
-summary(airquality_model)
-```
-
 ## Analysis and Visualization
 
 ```{r}
 # Visualize clusters
 airquality_cluster_plot <- ggplot(airquality_train, aes(x = PM2.5_Concentration, y = DieselPM_Concentration, color = Cluster)) +
-  geom_point(size = 3, alpha = 0.7) + 
+  geom_point(size = 3, alpha = 0.7) +
   scale_color_viridis_d() +
   geom_density2d(alpha = 0.5, color = "gray") +
   labs(  
     title = "Air Quality Cluster Analysis",   
-    subtitle = "Clustering based on PM2.5 and Diesel PM Concentrations",  
-    x = "PM 2.5 Concentration (µg/m³)",   
-    y = "Diesel PM Concentration (µg/m³)"  
-  ) +  
-  theme_minimal(base_size = 12) +  
-  theme(  
-    legend.position = "top",  
-    plot.title = element_text(face = "bold"),  
-    plot.subtitle = element_text(color = "gray50")  
-  )  
+    subtitle = "Clustering based on PM2.5 and Diesel PM Concentrations",
+    x = "PM 2.5 Concentration (µg/m³)",
+    y = "Diesel PM Concentration (µg/m³)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "top",
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(color = "gray50")
+  )
 
 print(airquality_cluster_plot)
+```
+
+### Regression (Linear Regression)
+
+```{r}
+airquality_model <- lm(Ozone_Concentration ~ PM2.5_Concentration + DieselPM_Concentration, data = airquality_train)
+summary(airquality_model)
 ```
 
 ```{r}
@@ -275,8 +275,8 @@ ggplot(airquality_test, aes(x = Ozone_Concentration, y = Predicted_Ozone)) +
   geom_abline(color = "red", linetype = "dashed", size = 1) +
   labs(
     title = "Perbandingan Ozon Aktual vs Prediksi", 
-    x = "Konsentrasi Ozon Aktual",  # Label sumbu X
-    y = "Konsentrasi Ozon Prediksi"  # Label sumbu Y
+    x = "Konsentrasi Ozon Aktual",
+    y = "Konsentrasi Ozon Prediksi"
   ) +
   theme_minimal() +
   theme(
@@ -285,4 +285,45 @@ ggplot(airquality_test, aes(x = Ozone_Concentration, y = Predicted_Ozone)) +
     axis.text = element_text(size = 10)
   )
 ```
+
+### Clustering (K-Means)
+
+```{r}
+cluster_summary <- airquality_scaled %>%
+  group_by(Cluster) %>%
+  arrange(Cluster)
+
+head(cluster_summary, 5)
+```
+
+```{r}
+# Visualisasi distribusi variabel dalam cluster
+numeric_cols_clustered <- airquality_scaled %>%
+  pivot_longer(cols = where(is.numeric), names_to = "Variable", values_to = "Value")
+
+ggplot(numeric_cols_clustered, aes(x = Value, fill = Cluster)) +
+  geom_histogram(position = "identity", alpha = 0.6, bins = 30) +
+  facet_wrap(~Variable, scales = "free") +
+  labs(
+    title = "Distribusi Variabel dalam Tiap Cluster",
+    x = "Nilai",
+    y = "Frekuensi"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# Deskripsi cluster
+cluster_descriptions <- cluster_summary %>%
+  mutate(Description = case_when(
+    Ozone_Concentration > 50 & PM2.5_Concentration > 50 ~ "Polusi Tinggi",
+    Ozone_Concentration < 30 & PM2.5_Concentration < 30 ~ "Polusi Rendah",
+    TRUE ~ "Polusi Sedang"
+  ))
+
+cluster_descriptions %>%
+  select(Ozone_Concentration, PM2.5_Concentration, Description) %>%
+  head(10)
+```
+
 
